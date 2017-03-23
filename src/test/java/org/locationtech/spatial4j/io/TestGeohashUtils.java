@@ -31,6 +31,9 @@ public class TestGeohashUtils {
 
     hash = GeohashUtils.encodeLatLon(57.64911, 10.40744);
     assertEquals("u4pruydqqvj8", hash);
+
+    String encode = GeohashUtils.encodeLatLon(29.52508228572224, 106.50849558413029);
+    assertEquals("wm5xzwvh5f62", encode);
   }
 
   /**

@@ -1,5 +1,7 @@
 /*.ipr
 /.idea/
+/.vscode/
+/.settings/
 *.iml
 target/
 
