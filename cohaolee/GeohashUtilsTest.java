@@ -15,7 +15,7 @@ public class GeohashUtilsTest {
         String encode1 = GeohashUtils.encode(106.50849558413029, 29.52508228572224);
         Assert.assertEquals("wm5xzwvh5f62", encode);
         Assert.assertEquals(encode, encode1);
-    }
+    } 
 
     @Test
     public void decode() throws Exception {
