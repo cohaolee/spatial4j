@@ -67,7 +67,10 @@ public class GeohashUtils {
                     "238967debc01fg45kmstqrwxuvhjyznp", // Left
             },
             {
-
+                    "bc01fg45238967deuvhjyznpkmstqrwx", // Top
+                    "p0r21436x8zb9dcf5h7kjnmqesgutwvy", // Right
+                    "238967debc01fg45kmstqrwxuvhjyznp", // Bottom
+                    "14365h7k9dcfesgujnmqp0r2twvyx8zb", // Left
             }
     };
 
@@ -97,10 +100,10 @@ public class GeohashUtils {
      * @return Geohash encoding of the longitude and latitude
      */
     public static String encode(double longitude, double latitude) {
-        return encode(longitude, latitude,  12);
+        return encode(longitude, latitude, 12);
     }
 
-    public static String encode(double longitude, double latitude,  int precision) {
+    public static String encode(double longitude, double latitude, int precision) {
         double[] latInterval = {-90.0, 90.0};
         double[] lngInterval = {-180.0, 180.0};
 
@@ -186,54 +189,67 @@ public class GeohashUtils {
         return new double[]{longitude, latitude};
     }
 
+    /**
+     * 计算相邻节点
+     *
+     * @param srcHash
+     * @param direction 方位
+     * @return 返回指定方位的相邻节点编码
+     */
     public static String calculateAdjacent(String srcHash, Direction direction) {
+        if (srcHash == null || "".equals(srcHash)) {
+            return ""; //该方位没有相邻节点
+        }
+
+        char lastChr = 0;
+        int isEven = 0; //0经度或1维度，最后一位是维度还是经度
+        int dir = 0;
+        String nHash = null; //获取除最后一位的所有编码
+
         srcHash = srcHash.toLowerCase();
 
-        char lastChr = srcHash.charAt(srcHash.length() - 1);
-        int isEven = srcHash.length() % 2; //0经度或1维度，最后一位是维度还是经度
-        int dir = direction.value;
-        String nHash = srcHash.substring(0, srcHash.length() - 1); //获取除最后一位的所有编码
+        lastChr = srcHash.charAt(srcHash.length() - 1);
+        isEven = srcHash.length() % 2; //（待确认Bug:算法在srcHash奇数编码时，反对角线换位），原因：多了一位经度导致，peano曲线构建问题？
+        dir = direction.value;
+        nHash = srcHash.substring(0, srcHash.length() - 1);
 
         //是否包含最后一个geohash字符
         if (Borders[isEven][dir].indexOf(lastChr) != -1) {
-            nHash = calculateAdjacent(nHash, direction);
+            nHash = calculateAdjacent(nHash, direction);//包含继续计算
+            if ("".equals(nHash)) {
+                return nHash;
+            }
         }
+
         return nHash + BASE_32[Neighbors[isEven][dir].indexOf(lastChr)];
     }
 
     /**
-     * 获取geohash 相邻8个节点
+     * 获取geohash 相邻节点的九宫格
      *
      * @param geohash
-     * @return 0 本身
-     * 1 Top
-     * 2 Bottom
-     * 3 Right
-     * 4 Left
-     * 5 TopLeft
-     * 6 TopRight
-     * 7 BottomRight
-     * 8 BottomLeft
+     * @return 返回九宫格
+     * 0 TopLeft     Top        TopRight
+     * 1 Left        本身        Right
+     * 2 BottomLeft BottomRight  Bottom
      */
-    public static String[] getGeoHashExpand(String geohash) {
-        try {
-            String geohashTop = calculateAdjacent(geohash, Direction.Top);
-            String geohashBottom = calculateAdjacent(geohash, Direction.Bottom);
-            String geohashRight = calculateAdjacent(geohash, Direction.Right);
-            String geohashLeft = calculateAdjacent(geohash, Direction.Left);
+    public static String[][] getSudoku(String geohash) {
+        String top = calculateAdjacent(geohash, Direction.Top);
+        String bottom = calculateAdjacent(geohash, Direction.Bottom);
+        String right = calculateAdjacent(geohash, Direction.Right);
+        String left = calculateAdjacent(geohash, Direction.Left);
 
-            String geohashTopLeft = calculateAdjacent(geohashLeft, Direction.Top);
-            String geohashTopRight = calculateAdjacent(geohashRight, Direction.Top);
-            String geohashBottomRight = calculateAdjacent(geohashRight, Direction.Bottom);
-            String geohashBottomLeft = calculateAdjacent(geohashLeft, Direction.Bottom);
+        String topLeft = calculateAdjacent(left, Direction.Top);
+        String topRight = calculateAdjacent(right, Direction.Top);
+        String bottomRight = calculateAdjacent(right, Direction.Bottom);
+        String bottomLeft = calculateAdjacent(left, Direction.Bottom);
 
-            String[] expand = {geohash, geohashTop, geohashBottom, geohashRight, geohashLeft, geohashTopLeft,
-                    geohashTopRight, geohashBottomRight, geohashBottomLeft};
-            return expand;
-        } catch (Exception e) {
-            //logger.error("GeoHash Error",e);
-            return null;
-        }
+        String[][] sudoku = {
+                {topLeft, top, topRight}
+                , {left, geohash, right}
+                , {bottomLeft, bottom, bottomRight}
+        };
+        return sudoku;
     }
 
     private static final double EARTH_RADIUS = 6371000;//赤道半径(单位m)
